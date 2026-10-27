@@ -17,6 +17,13 @@ Markdown is read as prose: headings, paragraphs, list items and table rows
 are read in order, code blocks and images are skipped, and links are read
 as their text.
 
+## Where it runs
+
+Builds are made for Apple Silicon Macs and for 64-bit Linux on x86 and ARM.
+On Linux it needs glibc 2.38 or newer (Fedora 39, Ubuntu 24.04, Debian 13
+and later) and the ALSA library (`alsa-lib` on Fedora, `libasound2` on
+Debian and Ubuntu), which desktop installs already have.
+
 ## First run
 
 The first run downloads the model (310 MB) and the voice (half a megabyte)
