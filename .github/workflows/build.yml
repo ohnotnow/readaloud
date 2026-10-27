@@ -1,16 +1,18 @@
 name: Build
 
-# Every push to master for now, while the Linux builds are proven; to become
-# tag-only releases once they work.
+# A push to master builds and tests. A v1.2.3 tag does the same, then publishes the
+# tarballs and their SHA256SUMS as a GitHub release, which `readaloud self-update` reads.
 on:
   push:
     branches: [master]
+    tags: ["v*.*.*"]
 
 permissions: {}
 
+# A newer push to master cancels an older run; a release run is never cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   build:
@@ -56,6 +58,19 @@ jobs:
       - name: Run the tests
         run: cargo test --workspace --release
 
+      - name: Stamp the release version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          cargo_version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "readaloud") | .version')
+          if [ "$version" != "$cargo_version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME does not match version $cargo_version in Cargo.toml"
+            exit 1
+          fi
+          # Read by option_env! in src/update.rs; a build without it is a dev build.
+          echo "READALOUD_VERSION=$version" >> "$GITHUB_ENV"
+
       - name: Build the binary
         run: cargo build --release
 
@@ -92,3 +107,30 @@ jobs:
           name: readaloud-${{ matrix.target }}
           path: dist/readaloud-${{ matrix.target }}.tar.gz
           if-no-files-found: error
+
+  release:
+    name: Publish the release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    # The only job that can write: it creates the release and uploads its files.
+    permissions:
+      contents: write
+    steps:
+      - name: Download the three builds
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish the release with checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd dist
+          sha256sum readaloud-*.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+          gh release create "$GITHUB_REF_NAME" readaloud-*.tar.gz SHA256SUMS \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --generate-notes --title "readaloud $GITHUB_REF_NAME"

@@ -60,7 +60,7 @@ pub fn voice(name: &str) -> Result<Vec<f32>> {
 /// Downloads to a `.part` file next to `dest` and only renames it into place once complete
 /// (and, when given, the checksum matches), so an interrupted download is never mistaken
 /// for a good one.
-fn download(url: &str, dest: &Path, sha256: Option<&str>) -> Result<()> {
+pub fn download(url: &str, dest: &Path, sha256: Option<&str>) -> Result<()> {
     fs::create_dir_all(dest.parent().unwrap())?;
     let name = dest.file_name().unwrap().to_string_lossy();
     eprintln!("readaloud: downloading {name}");

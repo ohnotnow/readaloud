@@ -1,9 +1,11 @@
 mod assets;
 mod kokoro;
 mod text;
+mod update;
 
 use std::io::Read;
 use std::path::PathBuf;
+use std::process::ExitCode;
 
 use anyhow::{Context, Result};
 use clap::Parser;
@@ -15,7 +17,10 @@ use text::Pronunciations;
 
 /// Reads a text or Markdown document aloud with the Kokoro voice model.
 #[derive(Parser)]
-#[command(version)]
+#[command(
+    version = update::VERSION,
+    after_help = "Also: `readaloud version` checks for a newer release, and `readaloud self-update` installs it.\nTo read a file called version or self-update, give its path: readaloud ./version"
+)]
 struct Args {
     /// The document to read. Reads standard input when there is none.
     file: Option<PathBuf>,
@@ -25,7 +30,30 @@ struct Args {
     voice: String,
 }
 
-fn main() -> Result<()> {
+/// Swaps this binary for the latest GitHub release.
+#[derive(Parser)]
+#[command(name = "readaloud self-update", bin_name = "readaloud self-update")]
+struct SelfUpdateArgs {
+    /// Install without asking.
+    #[arg(short, long)]
+    yes: bool,
+
+    /// Only report: exit 0 if up to date, 1 if a newer release exists, 2 if the check failed.
+    #[arg(long)]
+    check: bool,
+}
+
+fn main() -> Result<ExitCode> {
+    // The two subcommands are the exact words; anything else is a document to read.
+    match std::env::args().nth(1).as_deref() {
+        Some("version") => return Ok(update::version()),
+        Some("self-update") => {
+            let args = SelfUpdateArgs::parse_from(std::env::args().skip(1));
+            return Ok(update::self_update(args.yes, args.check));
+        }
+        _ => {}
+    }
+
     let args = Args::parse();
     let document = match &args.file {
         Some(path) => std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?,
@@ -72,5 +100,5 @@ fn main() -> Result<()> {
         player.append(SamplesBuffer::new(channels, rate, pause.clone()));
     }
     player.sleep_until_end();
-    Ok(())
+    Ok(ExitCode::SUCCESS)
 }

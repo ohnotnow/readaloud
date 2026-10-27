@@ -24,6 +24,36 @@ On Linux it needs glibc 2.38 or newer (Fedora 39, Ubuntu 24.04, Debian 13
 and later) and the ALSA library (`alsa-lib` on Fedora, `libasound2` on
 Debian and Ubuntu), which desktop installs already have.
 
+## Install
+
+Download the build for your machine from the
+[latest release](https://github.com/ohnotnow/readaloud/releases/latest) and
+put the binary somewhere on your `PATH`. For example, on an Apple Silicon
+Mac:
+
+```sh
+curl -fLO https://github.com/ohnotnow/readaloud/releases/latest/download/readaloud-aarch64-apple-darwin.tar.gz
+tar -xzf readaloud-aarch64-apple-darwin.tar.gz
+mv readaloud/readaloud ~/.local/bin/
+```
+
+On Linux use `readaloud-x86_64-unknown-linux-gnu.tar.gz` or
+`readaloud-aarch64-unknown-linux-gnu.tar.gz`. Each release also has a
+`SHA256SUMS` file to check the download against.
+
+Download with `curl` rather than a browser on a Mac: macOS quarantines files
+a browser saves, and then refuses to run the binary because it isn't
+notarised. If that happens, `xattr -d com.apple.quarantine readaloud` clears
+it.
+
+## Updating
+
+`readaloud version` shows the installed version and says if there is a
+newer release. `readaloud self-update` installs it after showing what has
+changed; `--yes` skips the question, and `--check` only reports (exit code 0
+up to date, 1 newer release available, 2 check failed). A copy you built
+yourself, or installed with `cargo install`, won't replace itself.
+
 ## First run
 
 The first run downloads the model (310 MB) and the voice (half a megabyte)
