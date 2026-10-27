@@ -775,6 +775,14 @@ mod tests {
     }
 
     #[test]
+    fn single_letters_and_acronyms_are_spelled_out() {
+        let g2p = G2P::new(Language::EnglishGB);
+        assert_eq!(g2p.g2p("option b").unwrap().0.trim(), "ˈɒpʃᵊn bˈiː");
+        assert_eq!(g2p.g2p("x").unwrap().0.trim(), "ˈɛks");
+        assert_eq!(g2p.g2p("LLM").unwrap().0.trim(), "ˌɛlˌɛlˈɛm");
+    }
+
+    #[test]
     fn hyphenated_words_are_said_as_one_word() {
         let g2p = G2P::new(Language::EnglishGB);
         // In Python misaki's dictionary as a whole word.

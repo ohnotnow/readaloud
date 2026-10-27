@@ -14,8 +14,21 @@ The default voice is `bf_isabella`. Any Kokoro voice name works: `af_` and
 `am_` voices read American English, the rest read British English.
 
 Markdown is read as prose: headings, paragraphs, list items and table rows
-are read in order, code blocks and images are skipped, and links are read
-as their text.
+are read in order, links are read as their text, and images are skipped.
+
+Code blocks are read too. Each one is announced with its language ("Python
+code block."), read a line at a time, and closed with "End of code block."
+In code, inline or in a block, the symbols that carry the meaning are said:
+
+- a dash at the start of a word is "minus": `cargo build --release` is
+  "cargo build minus minus release", `go test -v` is "go test minus v";
+- a dot inside or at the start of a name is "dot": `some-doc.md` is
+  "some-doc dot M D", `~/.config` is "dot config";
+- `|` is "pipe";
+- `_` is "underscore": `bm_george` is "bm underscore george".
+
+Other symbols are passed over, so `{"reasoning_effort": "none"}` comes out
+as "reasoning underscore effort none".
 
 ## Where it runs
 

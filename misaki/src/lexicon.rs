@@ -180,22 +180,12 @@ impl Lexicon {
             }
         }
 
-        if ps.is_none() && (word == "three" || word == "one") {
-            eprintln!(
-                "DEBUG: lookup '{}', dictionary size: {}, contains 'three': {}",
-                word,
-                self.golds.len(),
-                self.golds.contains_key("three")
-            );
-        }
-
-        // Special NNP handling if not found or no primary stress
+        // Not in the dictionary (or a proper noun without primary stress): spell it out,
+        // as Python misaki does for every word that passes `is_known`. That is how a lone
+        // "v" or "x" gets said: the dictionary only has letters as capitals.
         if ps.is_none() || (is_nnp && !ps.as_ref()?.contains('ˈ')) {
-            if is_nnp {
-                if let Some((nnp_ps, nnp_rating)) = self.get_nnp(&current_word) {
-                    ps = Some(nnp_ps);
-                    rating = nnp_rating;
-                }
+            if let Some(spelled) = self.get_nnp(&current_word) {
+                return Some(spelled);
             }
         }
 

@@ -21,6 +21,10 @@
 > - Number ranges are read with "to": "12-18" is "twelve to eighteen". Python misaki says
 >   "twelve eighteen"; this one is readaloud's own rule.
 > - `G2P::new` no longer sets up a fallback itself; pass one to `G2P::with_fallback`.
+> - A word the dictionary doesn't have but `is_known` accepts is spelled out letter by
+>   letter, as Python misaki does; upstream only did that for proper nouns, so a lone
+>   lowercase letter ("option b", `-v`) came out as the unknown marker and was dropped.
+>   A leftover debugging `eprintln!` in `Lexicon::lookup` is gone too.
 > - The unused `language-tokenizer` dependency is gone.
 >
 > The rest of this README is upstream's and may not match.
