@@ -1,0 +1,24 @@
+# cargo-about: the licences of every crate built into readaloud. A dependency under
+# any licence not listed here fails the build until someone has looked at it.
+accepted = [
+    "GPL-3.0-or-later",
+    "Apache-2.0",
+    "MIT",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "0BSD",
+    "Unlicense",
+    "Unicode-3.0",
+    "CDLA-Permissive-2.0",
+]
+
+targets = [
+    "aarch64-apple-darwin",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-unknown-linux-gnu",
+]
+
+ignore-build-dependencies = true
+ignore-dev-dependencies = true
