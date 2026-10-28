@@ -729,6 +729,15 @@ mod tests {
     }
 
     #[test]
+    fn markdown_keeps_a_light_stress_on_down_in_both_dialects() {
+        // Without it Kokoro swallows "down" and says "markdn".
+        let gb = Lexicon::new(Language::EnglishGB);
+        let us = Lexicon::new(Language::EnglishUS);
+        assert_eq!(phonemes(&gb, "markdown").as_deref(), Some("mˈɑːkdˌWn"));
+        assert_eq!(phonemes(&us, "Markdown").as_deref(), Some("mˈɑɹkdˌWn"));
+    }
+
+    #[test]
     fn the_table_holds_the_file_entries_and_nothing_more() {
         let lexicon = Lexicon::new(Language::EnglishUS);
         assert_eq!(lexicon.golds.len(), data::load_us_gold().len());

@@ -20,6 +20,8 @@
 > - Four-digit numbers are read as years ("nineteen ninety"), as Python misaki does.
 > - Number ranges are read with "to": "12-18" is "twelve to eighteen". Python misaki says
 >   "twelve eighteen"; this one is readaloud's own rule.
+> - "markdown" in `data/gb_gold.json` has a light stress on "down" (`mˈɑːkdˌWn`), as the US
+>   dictionary already does; without it Kokoro says "markdn". This one is readaloud's own.
 > - `G2P::new` no longer sets up a fallback itself; pass one to `G2P::with_fallback`.
 > - A word the dictionary doesn't have but `is_known` accepts is spelled out letter by
 >   letter, as Python misaki does; upstream only did that for proper nouns, so a lone
