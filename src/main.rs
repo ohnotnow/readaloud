@@ -4,10 +4,10 @@ mod text;
 mod update;
 
 use std::io::{IsTerminal, Read};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use misaki_rs::{EspeakFallback, G2P, Language};
 use rodio::buffer::SamplesBuffer;
@@ -25,9 +25,10 @@ struct Args {
     /// The document to read. Reads standard input when there is none.
     file: Option<PathBuf>,
 
-    /// Kokoro voice, such as bf_isabella, bm_george or af_heart.
-    #[arg(short, long, default_value = "bf_isabella")]
-    voice: String,
+    /// Kokoro voice, such as bf_isabella, bm_george or af_heart. Defaults to the voice in
+    /// ~/.config/readaloud/config.txt, or bf_isabella.
+    #[arg(short, long)]
+    voice: Option<String>,
 
     /// List the Kokoro voices, grouped by accent, and exit.
     #[arg(long)]
@@ -81,20 +82,26 @@ fn main() -> Result<ExitCode> {
         eprintln!("readaloud: nothing to read in {source}");
         return Ok(ExitCode::FAILURE);
     }
-    let pronunciations = match std::fs::read_to_string(assets::pronunciations_file()?) {
-        Ok(source) => Pronunciations::parse(&source),
-        Err(_) => Pronunciations::parse(""),
-    };
+    let pronunciations = Pronunciations::parse(&read_user_file(&assets::pronunciations_file()?));
 
+    let config_file = assets::config_file()?;
+    let voice_name = match (args.voice, configured_voice(&config_file)) {
+        (Some(name), _) => name,
+        (None, Some(name)) if !assets::is_voice(&name) => {
+            bail!("{name:?} in {} is not a Kokoro voice (readaloud --list-voices lists them)", config_file.display())
+        }
+        (None, Some(name)) => name,
+        (None, None) => DEFAULT_VOICE.to_string(),
+    };
     // American voices (af_, am_) read American English; every other voice reads British.
-    let british = !args.voice.starts_with('a');
+    let british = !voice_name.starts_with('a');
     let language = if british { Language::EnglishGB } else { Language::EnglishUS };
     let fallback = EspeakFallback::new(british, &assets::cache_dir()?.join("espeak-ng-data"))
         .map_err(anyhow::Error::msg)
         .context("setting up espeak-ng")?;
     let g2p = G2P::with_fallback(language, Some(Box::new(fallback)));
 
-    let voice = assets::voice(&args.voice)?;
+    let voice = assets::voice(&voice_name)?;
     let mut kokoro = Kokoro::load(&assets::model()?)?;
 
     // rodio asks for a fixed 50 ms buffer by default, which some devices refuse (one here
@@ -121,10 +128,47 @@ fn main() -> Result<ExitCode> {
     Ok(ExitCode::SUCCESS)
 }
 
+const DEFAULT_VOICE: &str = "bf_isabella";
+
+/// Reads one of the user's `key = value` files, warning about any line that isn't one.
+/// A file that isn't there reads as empty.
+fn read_user_file(path: &Path) -> String {
+    let source = std::fs::read_to_string(path).unwrap_or_default();
+    for line in text::entries(&source).filter_map(Result::err) {
+        eprintln!("readaloud: skipping {line:?} in {}: it isn't `name = value`", path.display());
+    }
+    source
+}
+
+/// The voice the user's config file sets, warning about any setting it doesn't know.
+fn configured_voice(path: &Path) -> Option<String> {
+    let source = read_user_file(path);
+    let mut voice = None;
+    for (key, value) in text::entries(&source).filter_map(Result::ok) {
+        match key {
+            // A later line overrides an earlier one.
+            "voice" => voice = Some(value.to_string()),
+            _ => eprintln!("readaloud: skipping the unknown setting {key:?} in {}", path.display()),
+        }
+    }
+    voice
+}
+
 /// One line per accent, accents in alphabetical order.
 fn list_voices() {
     for accent in assets::VOICES.iter().map(|v| assets::accent(v)).collect::<std::collections::BTreeSet<_>>() {
         let names: Vec<_> = assets::VOICES.iter().copied().filter(|v| assets::accent(v) == accent).collect();
         println!("{accent}: {}", names.join(" "));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_example_config_file_sets_the_default_voice() {
+        let settings: Vec<_> = text::entries(include_str!("../config.txt")).collect();
+        assert_eq!(settings, [Ok(("voice", DEFAULT_VOICE))]);
     }
 }

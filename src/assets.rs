@@ -58,8 +58,16 @@ pub fn cache_dir() -> Result<PathBuf> {
     home_dir("XDG_CACHE_HOME", ".cache")
 }
 
+fn config_dir() -> Result<PathBuf> {
+    home_dir("XDG_CONFIG_HOME", ".config")
+}
+
+pub fn config_file() -> Result<PathBuf> {
+    Ok(config_dir()?.join("config.txt"))
+}
+
 pub fn pronunciations_file() -> Result<PathBuf> {
-    Ok(home_dir("XDG_CONFIG_HOME", ".config")?.join("pronunciations.txt"))
+    Ok(config_dir()?.join("pronunciations.txt"))
 }
 
 pub fn model() -> Result<PathBuf> {
@@ -70,15 +78,19 @@ pub fn model() -> Result<PathBuf> {
     Ok(path)
 }
 
+pub fn is_voice(name: &str) -> bool {
+    VOICES.contains(&name)
+}
+
 /// Returns the voice's style table, downloading it the first time it is used.
 pub fn voice(name: &str) -> Result<Vec<f32>> {
-    if !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        bail!("{name:?} is not a Kokoro voice name");
+    if !is_voice(name) {
+        bail!("{name:?} is not a Kokoro voice (readaloud --list-voices lists them)");
     }
     let path = cache_dir()?.join("voices").join(format!("{name}.bin"));
     if !path.exists() {
         download(&format!("{REPO}/voices/{name}.bin"), &path, None)
-            .with_context(|| format!("could not fetch the voice {name:?}; is that a Kokoro voice?"))?;
+            .with_context(|| format!("could not fetch the voice {name:?}"))?;
     }
     let bytes = fs::read(&path)?;
     if bytes.len() != VOICE_ROWS * STYLE_LEN * 4 {
@@ -144,5 +156,11 @@ mod tests {
             assert_ne!(accent(name), "Other", "{name}");
         }
         assert!(VOICES.contains(&"bf_isabella"));
+    }
+
+    #[test]
+    fn an_unknown_voice_is_refused_before_any_download() {
+        let error = voice("bm_gorge").unwrap_err().to_string();
+        assert_eq!(error, "\"bm_gorge\" is not a Kokoro voice (readaloud --list-voices lists them)");
     }
 }

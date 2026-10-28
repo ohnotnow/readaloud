@@ -14,6 +14,15 @@ The default voice is `bf_isabella`. Any Kokoro voice name works, and
 `readaloud --list-voices` lists them all: `af_` and `am_` voices read
 American English, the rest read British English, whatever their accent.
 
+To change the default, put it in `~/.config/readaloud/config.txt`:
+
+```
+voice = bm_george
+```
+
+[config.txt](config.txt) in this repository is a copy to start from.
+`--voice` still wins when you give it.
+
 What a file is read as depends on its name:
 
 - `.md` and `.markdown` files, and anything piped in, are Markdown;
@@ -100,6 +109,10 @@ kubectl = cube control
 [pronunciations.txt](pronunciations.txt) in this repository is a starting
 point to copy. readaloud only reads the copy in your config folder, so
 nothing is applied unless you put it there.
+
+readaloud warns about, and skips, any line in `pronunciations.txt` or
+`config.txt` that it can't make sense of, and any setting in `config.txt`
+it doesn't know.
 
 Words match whole and ignoring case, except that a word written in capitals
 only matches capitals, so `IT = I T` leaves "it" alone. Anything not in Kokoro's dictionaries

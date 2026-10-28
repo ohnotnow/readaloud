@@ -219,18 +219,27 @@ fn push_block(blocks: &mut Vec<String>, current: &mut String) {
     current.clear();
 }
 
+/// The lines of one of the user's files that aren't blank or a `#` comment: each
+/// `key = value` line as its pair, and any other line as itself, to be warned about.
+pub fn entries(source: &str) -> impl Iterator<Item = Result<(&str, &str), &str>> {
+    source
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && !line.starts_with('#'))
+        .map(|line| match line.split_once('=') {
+            Some((key, value)) if !key.trim().is_empty() => Ok((key.trim(), value.trim())),
+            _ => Err(line),
+        })
+}
+
 /// The user's own fixes for words the voice gets wrong, one `word = say this instead` per line.
 pub struct Pronunciations(Vec<(Regex, String)>);
 
 impl Pronunciations {
     pub fn parse(source: &str) -> Self {
-        let rules = source
-            .lines()
-            .map(str::trim)
-            .filter(|line| !line.is_empty() && !line.starts_with('#'))
-            .filter_map(|line| line.split_once('='))
+        let rules = entries(source)
+            .filter_map(Result::ok)
             .filter_map(|(word, say)| {
-                let word = word.trim();
                 // \b only means something next to a word character, so ".env" matches too.
                 let edge = |c: Option<char>| if c.is_some_and(char::is_alphanumeric) { r"\b" } else { "" };
                 // A word in capitals ("IT") only matches capitals, so "it" is left alone.
@@ -242,7 +251,7 @@ impl Pronunciations {
                     regex::escape(word),
                     edge(word.chars().last())
                 );
-                Some((Regex::new(&pattern).ok()?, say.trim().to_string()))
+                Some((Regex::new(&pattern).ok()?, say.to_string()))
             })
             .collect();
         Self(rules)
@@ -396,6 +405,13 @@ mod tests {
     fn prose_is_not_read_as_markdown() {
         let text = "  An indented paragraph,\n  not a code block.\n\n# not a heading\n";
         assert_eq!(Format::Prose.blocks(text), ["An indented paragraph, not a code block.", "# not a heading."]);
+    }
+
+    #[test]
+    fn entries_hand_back_the_lines_that_are_not_key_value() {
+        let source = "# a comment\n\n  macOS = mac O S \nnot a rule\n= no word\n.env = dot env\n";
+        let lines: Vec<_> = entries(source).collect();
+        assert_eq!(lines, [Ok(("macOS", "mac O S")), Err("not a rule"), Err("= no word"), Ok((".env", "dot env"))]);
     }
 
     #[test]

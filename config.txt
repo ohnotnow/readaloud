@@ -1,0 +1,8 @@
+# Settings for readaloud. Copy this file to ~/.config/readaloud/config.txt
+# and change what you like.
+#
+# The voice to read with when you don't give --voice. readaloud --list-voices
+# lists them all: af_ and am_ voices read American English, the rest read
+# British English.
+
+voice = bf_isabella
