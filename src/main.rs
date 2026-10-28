@@ -3,7 +3,7 @@ mod kokoro;
 mod text;
 mod update;
 
-use std::io::Read;
+use std::io::{IsTerminal, Read};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
@@ -28,6 +28,10 @@ struct Args {
     /// Kokoro voice, such as bf_isabella, bm_george or af_heart.
     #[arg(short, long, default_value = "bf_isabella")]
     voice: String,
+
+    /// List the Kokoro voices, grouped by accent, and exit.
+    #[arg(long)]
+    list_voices: bool,
 }
 
 /// Swaps this binary for the latest GitHub release.
@@ -55,6 +59,14 @@ fn main() -> Result<ExitCode> {
     }
 
     let args = Args::parse();
+    if args.list_voices {
+        list_voices();
+        return Ok(ExitCode::SUCCESS);
+    }
+    if args.file.is_none() && std::io::stdin().is_terminal() {
+        eprintln!("readaloud: give a file to read, or pipe text in (readaloud --help for more)");
+        return Ok(ExitCode::from(2));
+    }
     let document = match &args.file {
         Some(path) => std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?,
         None => {
@@ -107,4 +119,12 @@ fn main() -> Result<ExitCode> {
     }
     player.sleep_until_end();
     Ok(ExitCode::SUCCESS)
+}
+
+/// One line per accent, accents in alphabetical order.
+fn list_voices() {
+    for accent in assets::VOICES.iter().map(|v| assets::accent(v)).collect::<std::collections::BTreeSet<_>>() {
+        let names: Vec<_> = assets::VOICES.iter().copied().filter(|v| assets::accent(v) == accent).collect();
+        println!("{accent}: {}", names.join(" "));
+    }
 }

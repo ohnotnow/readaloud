@@ -10,8 +10,9 @@ cat some-doc.md | readaloud
 readaloud --voice bm_george some-doc.md
 ```
 
-The default voice is `bf_isabella`. Any Kokoro voice name works: `af_` and
-`am_` voices read American English, the rest read British English.
+The default voice is `bf_isabella`. Any Kokoro voice name works, and
+`readaloud --list-voices` lists them all: `af_` and `am_` voices read
+American English, the rest read British English, whatever their accent.
 
 What a file is read as depends on its name:
 

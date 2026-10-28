@@ -12,6 +12,36 @@ use sha2::{Digest, Sha256};
 const REPO: &str = "https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/resolve/1939ad2a8e416c0acfeecc08a694d14ef25f2231";
 const MODEL_SHA256: &str = "8fbea51ea711f2af382e88c833d9e288c6dc82ce5e98421ea61c058ce21a34cb";
 
+/// Every voice at that commit, so the list can't go stale. The first letter is the
+/// accent the voice was trained on, the second whether it is female or male; any of
+/// them can read English.
+pub const VOICES: [&str; 55] = [
+    "af", "af_alloy", "af_aoede", "af_bella", "af_heart", "af_jessica", "af_kore", "af_nicole",
+    "af_nova", "af_river", "af_sarah", "af_sky", "am_adam", "am_echo", "am_eric", "am_fenrir",
+    "am_liam", "am_michael", "am_onyx", "am_puck", "am_santa", "bf_alice", "bf_emma",
+    "bf_isabella", "bf_lily", "bm_daniel", "bm_fable", "bm_george", "bm_lewis", "ef_dora",
+    "em_alex", "em_santa", "ff_siwis", "hf_alpha", "hf_beta", "hm_omega", "hm_psi", "if_sara",
+    "im_nicola", "jf_alpha", "jf_gongitsune", "jf_nezumi", "jf_tebukuro", "jm_kumo", "pf_dora",
+    "pm_alex", "pm_santa", "zf_xiaobei", "zf_xiaoni", "zf_xiaoxiao", "zf_xiaoyi", "zm_yunjian",
+    "zm_yunxi", "zm_yunxia", "zm_yunyang",
+];
+
+/// The accent a voice's first letter stands for.
+pub fn accent(voice: &str) -> &'static str {
+    match voice.chars().next() {
+        Some('a') => "American English",
+        Some('b') => "British English",
+        Some('e') => "Spanish",
+        Some('f') => "French",
+        Some('h') => "Hindi",
+        Some('i') => "Italian",
+        Some('j') => "Japanese",
+        Some('p') => "Brazilian Portuguese",
+        Some('z') => "Mandarin Chinese",
+        _ => "Other",
+    }
+}
+
 /// A voice file is a 510 x 256 table of f32 style vectors, one row per input length.
 pub const VOICE_ROWS: usize = 510;
 pub const STYLE_LEN: usize = 256;
@@ -101,4 +131,18 @@ pub fn download(url: &str, dest: &Path, sha256: Option<&str>) -> Result<()> {
     }
     fs::rename(&part, dest)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn every_listed_voice_is_a_valid_name_with_a_known_accent() {
+        for name in VOICES {
+            assert!(name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_'), "{name}");
+            assert_ne!(accent(name), "Other", "{name}");
+        }
+        assert!(VOICES.contains(&"bf_isabella"));
+    }
 }
