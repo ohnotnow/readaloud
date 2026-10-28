@@ -62,14 +62,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME#v}"
-          cargo_version=$(cargo metadata --no-deps --format-version 1 | jq -r '.packages[] | select(.name == "readaloud") | .version')
-          if [ "$version" != "$cargo_version" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME does not match version $cargo_version in Cargo.toml"
-            exit 1
-          fi
+          # The tag is the only place the version lives; Cargo.toml's stays at 0.0.0.
           # Read by option_env! in src/update.rs; a build without it is a dev build.
-          echo "READALOUD_VERSION=$version" >> "$GITHUB_ENV"
+          echo "READALOUD_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
 
       - name: Build the binary
         run: cargo build --release

@@ -19,7 +19,7 @@ pub const RELEASE: Option<&str> = option_env!("READALOUD_VERSION");
 /// What `--version` prints.
 pub const VERSION: &str = match RELEASE {
     Some(v) => v,
-    None => concat!(env!("CARGO_PKG_VERSION"), " (dev)"),
+    None => "dev",
 };
 
 /// The release asset built for this machine, matching the release workflow's matrix.
@@ -116,10 +116,7 @@ pub fn self_update(yes: bool, check: bool) -> ExitCode {
 
 fn run_self_update(yes: bool, check: bool) -> Result<ExitCode> {
     let Some(current) = RELEASE else {
-        bail!(
-            "this is a development build of {}, so it won't replace itself; rebuild it from source instead",
-            env!("CARGO_PKG_VERSION")
-        );
+        bail!("this is a development build, so it won't replace itself; rebuild it from source instead");
     };
     let Some(target) = TARGET else {
         bail!("there is no release build for this platform");

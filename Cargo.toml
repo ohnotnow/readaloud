@@ -3,7 +3,9 @@ members = ["misaki"]
 
 [package]
 name = "readaloud"
-version = "0.1.2"
+# Releases take their version from the git tag (see the release workflow), so this one
+# is never bumped.
+version = "0.0.0"
 edition = "2024"
 license = "GPL-3.0-or-later"
 description = "Reads text and Markdown documents aloud with the Kokoro text-to-speech model."
