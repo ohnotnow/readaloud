@@ -1,4 +1,4 @@
-//! Turns a document (Markdown, plain prose or code) into blocks of plain text worth reading aloud.
+//! Turns a document (Markdown, HTML, plain prose or code) into blocks of plain text worth reading aloud.
 
 use std::path::Path;
 use std::sync::LazyLock;
@@ -9,6 +9,8 @@ use regex::Regex;
 /// How a document is read, decided by its file name.
 pub enum Format {
     Markdown,
+    /// Turned into Markdown first, without the page's menus, scripts and styles.
+    Html,
     /// Paragraphs at blank lines, with nothing treated as Markdown.
     Prose,
     /// Read a line at a time after its name: "Php file.".
@@ -16,13 +18,15 @@ pub enum Format {
 }
 
 impl Format {
-    /// `.md` and `.markdown` are Markdown, `.txt` and no extension are prose, and any
-    /// other extension is code. Standard input (no path) is Markdown.
+    /// `.md` and `.markdown` are Markdown, `.html` and `.htm` are HTML, `.txt` and no
+    /// extension are prose, and any other extension is code. Standard input (no path)
+    /// is Markdown.
     pub fn of(path: Option<&Path>) -> Self {
         let Some(path) = path else { return Self::Markdown };
         let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
         match extension.as_str() {
             "md" | "markdown" => Self::Markdown,
+            "html" | "htm" => Self::Html,
             "txt" => Self::Prose,
             other => language_name(other).map_or(Self::Prose, Self::Code),
         }
@@ -31,6 +35,7 @@ impl Format {
     pub fn blocks(&self, document: &str) -> Vec<String> {
         match self {
             Self::Markdown => markdown_blocks(document),
+            Self::Html => markdown_blocks(&html_to_markdown(document)),
             Self::Prose => prose_blocks(document),
             Self::Code(name) => {
                 let mut blocks = vec![format!("{name} file.")];
@@ -92,6 +97,22 @@ fn markdown_blocks(markdown: &str) -> Vec<String> {
     }
     push_block(&mut blocks, &mut current);
     blocks
+}
+
+/// Page chrome is skipped without a word, on purpose: it is not part of the document
+/// (ant readaloud-Ed6UZ). `<header>`, `<footer>` and `<aside>` are kept, as documentation
+/// often puts real content in them.
+fn html_to_markdown(html: &str) -> String {
+    let converter = htmd::HtmlToMarkdown::builder()
+        .skip_tags(vec!["script", "style", "noscript", "template", "nav"])
+        .options(htmd::options::Options {
+            // Fenced, so a code block keeps its language: "Rust code block.".
+            code_block_style: htmd::options::CodeBlockStyle::Fenced,
+            ..Default::default()
+        })
+        .build();
+    // html5ever recovers from any input, and htmd 0.5 never returns an error.
+    converter.convert(html).expect("htmd always converts a string")
 }
 
 /// One block per paragraph, a paragraph ending at a blank line.
@@ -321,10 +342,12 @@ mod tests {
     fn the_file_name_decides_the_format() {
         let format = |name: &str| match Format::of(Some(Path::new(name))) {
             Format::Markdown => "markdown".to_string(),
+            Format::Html => "html".to_string(),
             Format::Prose => "prose".to_string(),
             Format::Code(language) => language,
         };
         assert_eq!(format("README.md"), "markdown");
+        assert_eq!(format("page.HTM"), "html");
         assert_eq!(format("notes.MARKDOWN"), "markdown");
         assert_eq!(format("notes.txt"), "prose");
         assert_eq!(format("LICENSE"), "prose");
@@ -344,6 +367,29 @@ mod tests {
             "class User extends Model.",
         ]);
         assert!(Format::Code("Php".into()).blocks("{\n}\n").is_empty());
+    }
+
+    #[test]
+    fn html_is_read_without_its_menus_scripts_or_styles() {
+        let page = r#"<html><head><title>Guide</title><style>p { color: red }</style></head><body>
+            <nav><a href="/">Home</a></nav>
+            <script>var tracking = 1;</script>
+            <h1>Install</h1>
+            <p>Run <code>make</code> then <a href="x">open it</a>.</p>
+            <pre><code class="language-sh">cargo build --release</code></pre>
+            <ul><li>first item</li></ul>
+            <aside>A note box.</aside>
+        </body></html>"#;
+        assert_eq!(Format::Html.blocks(page), [
+            "Guide.",
+            "Install.",
+            "Run make then open it.",
+            "Shell code block.",
+            "cargo build minus minus release.",
+            "End of code block.",
+            "first item.",
+            "A note box.",
+        ]);
     }
 
     #[test]

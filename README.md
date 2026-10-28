@@ -16,6 +16,8 @@ The default voice is `bf_isabella`. Any Kokoro voice name works: `af_` and
 What a file is read as depends on its name:
 
 - `.md` and `.markdown` files, and anything piped in, are Markdown;
+- `.html` and `.htm` files are read like Markdown, skipping the page's
+  menus (`<nav>`), scripts and styles;
 - `.txt` files and files with no extension are plain prose, a paragraph at
   a time;
 - anything else is code: announced by its type ("Php file.") and read a line
