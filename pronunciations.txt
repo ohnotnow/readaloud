@@ -2,6 +2,9 @@
 # ~/.config/readaloud/pronunciations.txt and add your own.
 #
 # One fix per line: the word, an equals sign, then how to say it, spelled
-# the way you would say it. Words match whole and in any case.
+# the way you would say it. Words match whole and in any case, except that
+# a word written in capitals only matches capitals: "IT" below leaves "it"
+# alone.
 
 macOS = mac O S
+IT = I T

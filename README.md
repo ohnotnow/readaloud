@@ -1,6 +1,6 @@
 # readaloud
 
-Reads a text or Markdown document out loud with the
+Reads a text, Markdown or code file out loud with the
 [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) voice model, on your own
 machine.
 
@@ -12,6 +12,16 @@ readaloud --voice bm_george some-doc.md
 
 The default voice is `bf_isabella`. Any Kokoro voice name works: `af_` and
 `am_` voices read American English, the rest read British English.
+
+What a file is read as depends on its name:
+
+- `.md` and `.markdown` files, and anything piped in, are Markdown;
+- `.txt` files and files with no extension are plain prose, a paragraph at
+  a time;
+- anything else is code: announced by its type ("Php file.") and read a line
+  at a time, as below.
+
+If there is nothing to read, readaloud says so and exits with status 1.
 
 Markdown is read as prose: headings, paragraphs, list items and table rows
 are read in order, links are read as their text, and images are skipped.
@@ -88,7 +98,8 @@ kubectl = cube control
 point to copy. readaloud only reads the copy in your config folder, so
 nothing is applied unless you put it there.
 
-Words match whole and ignoring case. Anything not in Kokoro's dictionaries
+Words match whole and ignoring case, except that a word written in capitals
+only matches capitals, so `IT = I T` leaves "it" alone. Anything not in Kokoro's dictionaries
 goes to a rule-based fallback, which is where most odd pronunciations come
 from, so technical words and names are the usual candidates.
 

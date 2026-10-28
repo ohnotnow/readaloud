@@ -15,7 +15,7 @@ use rodio::buffer::SamplesBuffer;
 use kokoro::{Kokoro, SAMPLE_RATE};
 use text::Pronunciations;
 
-/// Reads a text or Markdown document aloud with the Kokoro voice model.
+/// Reads a text, Markdown or code file aloud with the Kokoro voice model.
 #[derive(Parser)]
 #[command(
     version = update::VERSION,
@@ -63,6 +63,12 @@ fn main() -> Result<ExitCode> {
             s
         }
     };
+    let blocks = text::Format::of(args.file.as_deref()).blocks(&document);
+    if blocks.is_empty() {
+        let source = args.file.as_ref().map_or("standard input".to_string(), |p| p.display().to_string());
+        eprintln!("readaloud: nothing to read in {source}");
+        return Ok(ExitCode::FAILURE);
+    }
     let pronunciations = match std::fs::read_to_string(assets::pronunciations_file()?) {
         Ok(source) => Pronunciations::parse(&source),
         Err(_) => Pronunciations::parse(""),
@@ -92,7 +98,7 @@ fn main() -> Result<ExitCode> {
 
     // Kokoro makes speech much faster than it plays, so queueing each piece as it is
     // made keeps the player fed and the first words start almost at once.
-    for block in text::blocks(&document) {
+    for block in blocks {
         let (phonemes, _) = g2p.g2p(&pronunciations.apply(&block))?;
         for chunk in kokoro.chunks(&phonemes) {
             player.append(SamplesBuffer::new(channels, rate, kokoro.speak(&chunk, &voice)?));
